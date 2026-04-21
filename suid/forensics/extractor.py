@@ -6,7 +6,7 @@ Usage:
     from suid.forensics.extractor import ForensicExtractor
     report = ForensicExtractor.entity_report("PAT-20260420-KE047-A3X9KM")
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from suid.generator import SUID
 from suid.validator import validate
 from suid.registry.prefixes import PREFIX
