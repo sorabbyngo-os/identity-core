@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: sorabbyngo-suid
+Version: 1.1.0
+Summary: Sorabbyngo Universal ID system — traceable, tamper-detectable entity IDs
+Author: Sorabbyngo Company
+Author-email: dev@sorabbyngo.com
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary

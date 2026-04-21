@@ -1,189 +1,166 @@
-# identity-core — Sorabbyngo Universal ID System
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sorabbyngo-Labs/.github/main/assets/sorabbyngo-logo.jpg" alt="Sorabbyngo" width="480"/>
+</p>
 
-> Every entity in the Sorabbyngo ecosystem has a traceable, tamper-detectable identity.
+<p align="center">
+  <strong>Identity Core — Sorabbyngo Universal ID System</strong>
+</p>
 
----
-
-## Format
-
-```
-{PREFIX}-{YYYYMMDD}-{REGION}-{RANDOM6}-{CHECK2}
-
-PAT-20260421-KE045-A3X9KM-7F
-DOC-20260421-KE047-B7X2QR-3K
-TXN-20260421-UG001-C4M8NP-9W
-```
-
-| Component | Length | Example | Purpose |
-|-----------|--------|---------|---------|
-| `PREFIX`  | 3 chars | `PAT` | Entity type |
-| `DATE`    | 8 digits | `20260421` | Creation date UTC |
-| `REGION`  | 5 chars | `KE045` | Geographic origin |
-| `RANDOM`  | 6 chars | `A3X9KM` | Cryptographic entropy |
-| `CHECK`   | 2 chars | `7F` | Tamper detection |
+<p align="center">
+  Traceable · Forensic-ready · Kenya-native · Zero dependencies
+</p>
 
 ---
 
-## Entity Types
+## What this is
 
-### Health Platform (Novela)
-| Code | Entity |
-|------|--------|
-| `PAT` | Patient Record |
-| `DOC` | Doctor / Clinician |
-| `NRS` | Nurse |
-| `CHW` | Community Health Worker |
-| `HSP` | Hospital / Facility |
-| `CLN` | Clinic |
-| `PHM` | Pharmacy |
-| `ADM` | Ward Admission |
-| `APT` | Appointment |
-| `RXN` | Prescription |
-| `VRF` | Medication Verification |
-| `LAB` | Laboratory Result |
-| `DXN` | Diagnosis Record |
-| `VST` | Clinical Visit |
+Every entity in the Sorabbyngo ecosystem — patients, doctors, hospitals, devices, transactions, alerts — has a structured Universal ID (SUID) that carries its type, creation date, and Kenyan county of origin directly in the ID string.
 
-### Monitor System
-| Code | Entity |
-|------|--------|
-| `MON` | Bedside Monitor |
-| `ALE` | Clinical Alert |
-| `VTL` | Vitals Reading |
-| `GTW` | Ward Gateway |
-
-### Finance
-| Code | Entity |
-|------|--------|
-| `TXN` | Financial Transaction |
-| `PAY` | Payment Record |
-| `CLM` | Insurance Claim |
-
-### Infrastructure
-| Code | Entity |
-|------|--------|
-| `NDI` | Byngonet Node |
-| `DEV` | OS Device |
-| `AUD` | Audit Log Entry |
-| `INC` | Security Incident |
+No lookups needed. Every ID tells a story.
 
 ---
 
-## Supported Regions
-
-| Country | Codes | Coverage |
-|---------|-------|----------|
-| Kenya 🇰🇪 | KE001–KE047 | All 47 counties |
-| Uganda 🇺🇬 | UG001–UG010 | Major districts |
-| Tanzania 🇹🇿 | TZ001–TZ008 | Major regions |
-| Rwanda 🇷🇼 | RW001–RW005 | All provinces |
-| Ethiopia 🇪🇹 | ET001–ET006 | Major regions |
-| Ghana 🇬🇭 | GH001–GH006 | Major regions |
-| Nigeria 🇳🇬 | NG001–NG008 | Major states |
-| South Africa 🇿🇦 | ZA001–ZA006 | All provinces |
+## ID Format
+{PREFIX}-{YYYYMMDD}-{REGION}-{RANDOM6}
+PAT-20260420-KE047-A3X9KM   ← Patient, 20 Apr 2026, Nairobi
+DOC-20260420-KE045-B7YQ2R   ← Doctor, 20 Apr 2026, Kisii
+TXN-20260420-KE001-E9VK3J   ← Transaction, 20 Apr 2026, Mombasa
+MON-20260420-KE042-D2WL5T   ← Monitor device, 20 Apr 2026, Kisumu
 
 ---
 
-## Quick Start
+## Prefix Registry
+
+| Prefix | Entity | System |
+|---|---|---|
+| PAT | Patient | Novela |
+| DOC | Doctor / Clinician | Novela |
+| CGV | Caregiver | Novela |
+| CHW | Community Health Worker | Novela |
+| HSP | Hospital / Facility | Novela |
+| CLN | Clinic | Novela |
+| PHM | Pharmacy | Novela |
+| ADM | Ward Admission | Novela |
+| APT | Appointment | Novela |
+| CPL | Care Plan | Novela |
+| RXN | Prescription | Novela |
+| MED | Medication Verification | Novela |
+| LAB | Lab Result | Novela |
+| DXN | Diagnosis | Novela |
+| VST | Clinical Visit | Novela |
+| MON | Monitor Device | novela-monitors |
+| ALE | Clinical Alert | novela-monitors |
+| VTL | Vitals Reading | novela-monitors |
+| GTW | Ward Gateway | novela-monitors |
+| USR | System User | identity |
+| SES | Auth Session | identity |
+| TXN | Transaction | Finance |
+| INV | Invoice | Finance |
+| PAY | Payment | Finance |
+| CLM | Insurance Claim | Finance |
+| NDI | Byngonet Node | byngonet |
+| DEV | OS Device | sorabbyngo-os |
+| AUD | Audit Log Entry | CML |
+| INC | Security Incident | CML |
+| OBK | Outbreak Event | Population Health |
+| CAM | Health Campaign | Population Health |
+
+---
+
+## Usage
 
 ```python
-from suid import SUID, PREFIX, validate, ForensicExtractor, AuditLogger
+from suid import SUID, PREFIX, validate, parse
 
 # Generate IDs
-patient = SUID.patient("KE045")          # PAT-20260421-KE045-A3X9KM-7F
-doctor  = SUID.doctor("KE045")           # DOC-20260421-KE045-B7X2QR-3K
-txn     = SUID.transaction("KE047")      # TXN-20260421-KE047-C4M8NP-9W
+patient_id     = SUID.patient("KE047")      # PAT-20260420-KE047-A3X9KM
+doctor_id      = SUID.doctor("KE045")       # DOC-20260420-KE045-B7YQ2R
+transaction_id = SUID.transaction("KE001")  # TXN-20260420-KE001-E9VK3J
+monitor_id     = SUID.monitor("KE042")      # MON-20260420-KE042-D2WL5T
 
-# Any entity type
-alert   = SUID.generate(PREFIX.ALERT, "UG001")
+# Generate any entity type
+alert_id = SUID.generate(PREFIX.ALERT, "KE047")
 
 # Validate
-validate(patient)                         # True
-validate(patient, verify_checksum=True)   # True — checksum verified
+validate("PAT-20260420-KE047-A3X9KM")  # True
+validate("NOT-VALID")                   # False
 
 # Parse
-info = SUID.parse(patient)
+info = parse("PAT-20260420-KE047-A3X9KM")
 # {
-#   "prefix": "PAT", "prefix_name": "Patient Record",
-#   "date": "2026-04-21", "region": "KE045",
-#   "region_name": "Kisii", "country": "Kenya",
-#   "checksum_valid": True, "tampered": False
+#   "valid": True,
+#   "prefix": "PAT",
+#   "prefix_name": "PATIENT",
+#   "date": "2026-04-20",
+#   "region": "KE047",
+#   "county": "Nairobi",
+#   "suffix": "A3X9KM"
 # }
-
-# Audit logging
-AuditLogger.create(patient, actor_id=doctor)
-AuditLogger.admit(patient, admission_id, actor_id=doctor)
-AuditLogger.alert(alert_id, patient_id=patient)
-
-# Forensics
-report = ForensicExtractor.entity_report(patient)
-summary = ForensicExtractor.law_enforcement_summary(
-    suids=[patient, doctor, txn],
-    case_number="NPS/CID/2026/001",
-    requesting_authority="Kenya National Police Service",
-    authorized_by="Head of IT, Sorabbyngo Company",
-)
 ```
 
 ---
 
-## Law Enforcement / Forensics
-
-Every SUID embeds forensic metadata without requiring database access:
+## Forensic Extraction
 
 ```python
-ForensicExtractor.entity_report("PAT-20260421-KE045-A3X9KM-7F")
-# {
-#   "entity_type":    "Patient Record",
-#   "created_date":   "2026-04-21",
-#   "origin_area":    "Kisii",
-#   "origin_country": "Kenya",
-#   "tampered":       False,
-#   "db_queries": {
-#     "audit_trail":       "SELECT * FROM audit_logs WHERE entity_id = '...'",
-#     "access_log":        "SELECT * FROM audit_logs WHERE action IN ('READ','ACCESS'...",
-#     "related_entities":  "SELECT * FROM audit_logs WHERE related_id = '...'",
-#   }
-# }
+from suid.forensics.extractor import ForensicExtractor
+
+# Single entity report
+report = ForensicExtractor.entity_report("PAT-20260420-KE047-A3X9KM")
+# Returns: entity type, creation date, county, DB query to run
+
+# Law enforcement summary report
+summary = ForensicExtractor.law_enforcement_summary(
+    suids=["PAT-...", "TXN-...", "ADM-..."],
+    case_number="CASE-2026-001"
+)
+
+# Filter by type, region, or date range
+patients = ForensicExtractor.filter_by_type(all_ids, "PAT")
+nairobi  = ForensicExtractor.filter_by_region(all_ids, "KE047")
+range_ids= ForensicExtractor.filter_by_date_range(all_ids, "2026-01-01", "2026-04-20")
 ```
 
-The `law_enforcement_summary()` method generates a structured report suitable for official submission to police, courts, or regulators — including tamper detection, entity timeline, and breakdown by type and region.
+---
+
+## DB Query for any SUID
+
+```sql
+SELECT * FROM audit_logs
+WHERE entity_id  = 'PAT-20260420-KE047-A3X9KM'
+   OR related_id = 'PAT-20260420-KE047-A3X9KM'
+ORDER BY created_at ASC;
+```
 
 ---
 
-## Security Properties
-
-| Property | Implementation |
-|----------|---------------|
-| Non-guessable | `secrets.choice()` — cryptographically random suffix |
-| Tamper-detectable | 2-char checksum over all components |
-| Forensically traceable | Date + region embedded in ID |
-| Permanent | Prefixes never reused once assigned |
-| URL-safe | A-Z, 0-9, hyphens only |
-
----
-
-## Installation
+## Install
 
 ```bash
-pip install -e .          # Development
-pip install -e ".[dev]"   # With test dependencies
-pytest tests/             # Run tests
+pip install -e .
 ```
 
 ---
 
-## Integration
+## Test
 
-Used across the entire Sorabbyngo ecosystem:
-
-- **Novela** — patient, doctor, hospital, prescription, lab result IDs
-- **novela-monitors** — monitor, alert, vitals, gateway IDs
-- **Byngox** — agent session and decision IDs
-- **CML** — audit log IDs (audit entries are themselves SUIDs)
-- **Sorabbyngo OS** — node, device, kernel event IDs
-- **Finance** — transaction, payment, claim IDs
+```bash
+pytest tests/ -v
+```
 
 ---
 
-*Sorabbyngo Company · Kisii, Kenya · 2026 · Rhythm of Digital Life*
+## Part of SORABBYNGO OS
+
+| Repo | Uses identity-core for |
+|---|---|
+| [novela](https://github.com/sorabbyngo-Labs/novela) | Patient, doctor, hospital, admission IDs |
+| [novela-monitors](https://github.com/sorabbyngo-Labs/novela-monitors) | Monitor, alert, gateway IDs |
+| [cml](https://github.com/sorabbyngo-Labs/cml) | Audit log IDs |
+| [byngonet](https://github.com/sorabbyngo-Labs/byngonet) | Node IDs |
+| [sorabbyngo-os](https://github.com/sorabbyngo-Labs/sorabbyngo-os) | Device, session IDs |
+
+---
+
+**Sorabbyngo Company** · Kisii, Kenya · 2026
+*Rhythm of Digital Life*
