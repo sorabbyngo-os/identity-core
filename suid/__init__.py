@@ -1,6 +1,22 @@
-from suid.generator import SUID
-from suid.registry.prefixes import PREFIX
-from suid.validator import validate, parse
+"""
+Sorabbyngo Universal ID (SUID) — Python Package
+"""
 
-__all__ = ["SUID", "PREFIX", "validate", "parse"]
-__version__ = "1.0.0"
+from suid.generator import SUID
+from suid.validator import validate, parse, is_tampered
+from suid.registry import PREFIX
+from suid.audit import AuditLogger
+from suid.forensics import ForensicExtractor
+
+__version__ = "1.1.0"
+__author__  = "Sorabbyngo Company"
+
+__all__ = [
+    "SUID",
+    "PREFIX",
+    "validate",
+    "parse",
+    "is_tampered",
+    "AuditLogger",
+    "ForensicExtractor",
+]
