@@ -2,18 +2,21 @@ from setuptools import setup, find_packages
 
 setup(
     name="sorabbyngo-suid",
-    version="1.1.0",
-    description="Sorabbyngo Universal ID system — traceable, tamper-detectable entity IDs",
-    author="Sorabbyngo Company",
-    author_email="dev@sorabbyngo.com",
+    version="1.0.0",
+    description="Sorabbyngo Universal ID — tamper-detectable, forensically traceable entity IDs",
+    author="Sorabbyngo Labs",
+    author_email="eng@sorabbyngo.com",
+    url="https://github.com/sorabbyngo-Labs/identity-core",
     packages=find_packages(),
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     install_requires=[],
     extras_require={
-        "dev": ["pytest>=8.0"]
+        "nats": ["nats-py>=2.6.0"],
+        "dev":  ["pytest>=7.0", "pytest-asyncio"],
     },
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
-    ],
+    entry_points={
+        "console_scripts": [
+            "suid=suid.cli:main",
+        ],
+    },
 )
