@@ -77,7 +77,7 @@ class AuditLogger:
             "metadata":   metadata or {},
         }
 
-        log.info("[AUDIT] %s", json.dumps(entry))
+        log.info("[AUDIT] %s", json.dumps(entry, default=str))
         return entry
 
     # ── Convenience methods ───────────────────────────────────────────────
