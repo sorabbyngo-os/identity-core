@@ -1,27 +1,58 @@
 """
 SUID Audit Logger
 Logs every entity lifecycle event for forensic traceability.
-Integrates with CML audit ledger via NATS.
-
+Writes to the sorabbyngo-security hash-chained audit ledger when available.
+Falls back to Python logging if the security repo is not on the path.
 Every action on every entity produces an immutable audit entry.
 Audit IDs are themselves SUIDs — traceable and tamper-detectable.
 """
-
 import json
 import logging
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger("suid.audit")
+
+# Try to import canonical AuditWriter from sorabbyngo-security
+_AuditWriter = None
+_SECURITY_PATHS = [
+    Path(__file__).parent.parent.parent.parent / "sorabbyngo-security" / "audit",
+    Path.home() / "sorabbyngo-security" / "audit",
+    Path("/opt/sorabbyngo/security/audit"),
+]
+for _p in _SECURITY_PATHS:
+    if (_p / "audit_writer.py").exists():
+        if str(_p) not in sys.path:
+            sys.path.insert(0, str(_p))
+        try:
+            from audit_writer import AuditWriter as _AuditWriter
+            log.info(f"[suid.audit] Using canonical AuditWriter from {_p}")
+            break
+        except ImportError:
+            pass
+
+_writer = None
+
+def _get_writer():
+    global _writer
+    if _writer is None and _AuditWriter is not None:
+        try:
+            import os
+            node_id = os.environ.get("SORABBYNGO_NODE_ID", "unknown")
+            _writer = _AuditWriter(node_id=node_id)
+        except Exception as e:
+            log.warning(f"[suid.audit] AuditWriter init failed: {e}")
+    return _writer
 
 
 class AuditLogger:
     """
     Logs entity lifecycle events tied to SUIDs.
     Every create, update, delete, and access is logged with its own SUID.
+    Writes to hash-chained ledger when sorabbyngo-security is available.
     """
-
-    # Valid action types
     ACTIONS = {
         "CREATE", "READ", "UPDATE", "DELETE",
         "ACCESS", "EXPORT", "IMPORT",
@@ -43,19 +74,6 @@ class AuditLogger:
         ip_address: Optional[str] = None,
         region:     str = "KE047",
     ) -> dict:
-        """
-        Log an audit event. Returns the audit entry.
-
-        Args:
-            action:     One of ACTIONS (e.g. CREATE, READ, ALERT)
-            entity_id:  SUID of the entity being acted on
-            actor_id:   SUID of the user performing the action (DOC/NRS/USR)
-            related_id: SUID of a related entity (e.g. patient linked to admission)
-            metadata:   Additional context dict
-            ip_address: Request IP address for network forensics
-            region:     Region where action occurred
-        """
-        # Import here to avoid circular import
         from suid.generator import SUID
         from suid.registry.prefixes import PREFIX
 
@@ -64,7 +82,6 @@ class AuditLogger:
             log.warning("[AuditLogger] Unknown action type: %s", action)
 
         audit_id = SUID.generate(PREFIX.AUDIT, region)
-
         entry = {
             "audit_id":   audit_id,
             "action":     action,
@@ -77,11 +94,31 @@ class AuditLogger:
             "metadata":   metadata or {},
         }
 
+        # Write to hash-chained ledger if available
+        writer = _get_writer()
+        if writer is not None:
+            try:
+                writer.write(
+                    actor=actor_id or "system",
+                    action=f"data.{action.lower()}",
+                    resource=f"entity/{entity_id}",
+                    outcome="SUCCESS",
+                    metadata={
+                        "audit_id":   audit_id,
+                        "action":     action,
+                        "related_id": related_id,
+                        "ip_address": ip_address,
+                        **(metadata or {}),
+                    },
+                    service="identity-core",
+                )
+            except Exception as e:
+                log.warning(f"[suid.audit] Chain write failed: {e}")
+
         log.info("[AUDIT] %s", json.dumps(entry, default=str))
         return entry
 
     # ── Convenience methods ───────────────────────────────────────────────
-
     @staticmethod
     def create(entity_id: str, actor_id: str = None, **kwargs) -> dict:
         return AuditLogger.log("CREATE", entity_id, actor_id, **kwargs)

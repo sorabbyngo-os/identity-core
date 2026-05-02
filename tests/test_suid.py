@@ -233,3 +233,71 @@ def test_audit_alert():
     entry = AuditLogger.alert(ale, pat)
     assert entry["action"]     == "ALERT"
     assert entry["related_id"] == pat
+
+# ── Additional tests ───────────────────────────────────────────────────────────
+def test_filter_by_date_range():
+    """filter_by_date_range returns only IDs created within the window."""
+    from datetime import date
+    today = date.today().isoformat()
+    suids = SUID.batch(PREFIX.PATIENT, "KE047", count=3)
+    result = ForensicExtractor.filter_by_date_range(suids, today, today)
+    assert len(result) == 3
+
+def test_filter_by_date_range_excludes_out_of_range():
+    suids = SUID.batch(PREFIX.PATIENT, "KE047", count=2)
+    result = ForensicExtractor.filter_by_date_range(suids, "2020-01-01", "2020-12-31")
+    assert len(result) == 0
+
+def test_detect_tampered_in_bulk():
+    good    = SUID.patient("KE045")
+    parts   = good.split("-")
+    parts[3] = "XXXXXX"
+    bad     = "-".join(parts)
+    result  = ForensicExtractor.detect_tampered([good, bad])
+    assert bad  in result
+    assert good not in result
+
+def test_bulk_report():
+    suids  = [SUID.patient("KE047"), SUID.doctor("KE045")]
+    reports = ForensicExtractor.bulk_report(suids)
+    assert len(reports) == 2
+    assert all(r["valid"] for r in reports)
+
+def test_audit_discharge():
+    pat = SUID.patient("KE042")
+    adm = SUID.admission("KE042")
+    entry = AuditLogger.discharge(pat, adm)
+    assert entry["action"] == "DISCHARGE"
+    assert entry["related_id"] == adm
+
+def test_audit_login():
+    usr = SUID.generate("USR", "KE047")
+    entry = AuditLogger.login(usr, ip_address="192.168.1.1")
+    assert entry["action"] == "LOGIN"
+    assert entry["ip_address"] == "192.168.1.1"
+
+def test_audit_auth_fail():
+    usr = SUID.generate("USR", "KE047")
+    entry = AuditLogger.auth_fail(usr, ip_address="10.0.0.1")
+    assert entry["action"] == "AUTH_FAIL"
+
+def test_suid_uniqueness_across_regions():
+    """Same prefix, different regions — all unique."""
+    regions = ["KE047", "KE045", "UG001", "TZ001", "NG001"]
+    ids = [SUID.patient(r) for r in regions]
+    assert len(set(ids)) == len(ids)
+
+def test_prefix_all_returns_dict():
+    all_p = PREFIX.all()
+    assert isinstance(all_p, dict)
+    assert len(all_p) > 40
+
+def test_parse_all_african_countries():
+    from suid.regions.africa import COUNTRY_MAP
+    for iso2, country in COUNTRY_MAP.items():
+        if iso2 == "KE":
+            continue
+        code = f"{iso2}001"
+        from suid.regions.africa import is_valid_region, get_country
+        assert is_valid_region(code), f"{code} should be valid"
+        assert get_country(code) == country
